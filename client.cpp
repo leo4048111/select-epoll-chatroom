@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstring>
+#include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -31,10 +32,46 @@ int main(int argc, char** argv) {
         exit(ret);
     }
 
-    char buf[2048];
-    memset(buf, 0, sizeof(buf));
-    ret = recv(csock, buf, sizeof(buf), 0);
-    std::cout << buf << std::endl;
+    // init fd set
+    fd_set readFds, tmpFds;
+    FD_ZERO(&readFds);
+    // add stdin to fd set
+    FD_SET(0, &readFds);
+    // add socket to fd set
+    FD_SET(csock, &readFds);
+    int maxFd = csock;
+    bool end = false;
+    while(!end) {
+        tmpFds = readFds;
+        ret = select(maxFd + 1, &tmpFds, nullptr, nullptr, nullptr);
 
+        if(ret == -1) {
+            printf("Error when calling select...\n");
+            break;
+        }
+
+        if(ret == 0) continue;
+
+        for(int i = 0; i <= maxFd; i++) {
+            if(!FD_ISSET(i, &tmpFds)) continue;
+
+            if(i == 0) {
+                char buf[2048];
+                scanf("%s", buf);
+                ret = send(csock, buf, sizeof(buf), 0);
+            }
+            else if(i == csock) { // received message from server
+                char buf[2048];
+                ret = recv(csock, buf, sizeof(buf), 0);
+                if(ret == 0) {
+                    end = true;
+                    break;
+                }
+                printf("%s\n", buf);
+            }
+        }
+    }
+
+    close(csock);
     return 0;
 }

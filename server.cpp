@@ -2,6 +2,7 @@
 #include <list>
 #include <cstdlib>
 #include <cstring>
+#include <algorithm>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/epoll.h>
@@ -94,7 +95,8 @@ int main(int argc, char** argv)
 
         if(ret == 0) continue;
 
-        for(int i = 0; i < ret; i++) {
+        int numEvents = ret;
+        for(int i = 0; i < numEvents; i++) {
             auto e = events[i];
 
             if(e.data.fd == ssock) // new connection from client
@@ -115,7 +117,7 @@ int main(int argc, char** argv)
                 clientfds.push_back(clientfd);
                 welcome(clientfd);
             }
-            else { // data from client
+            else if(::std::find(clientfds.begin(), clientfds.end(), e.data.fd) != clientfds.end()){ // data from client
                 char buf[2048];
                 memset(buf, 0, sizeof(buf));
                 ret = recv(e.data.fd, buf, sizeof(buf), 0);
@@ -128,6 +130,7 @@ int main(int argc, char** argv)
                     close(e.data.fd);
                     epoll_ctl(epfd, EPOLL_CTL_DEL, e.data.fd, nullptr);
                     clientfds.remove(e.data.fd);
+                    printf("Closed connection on client socket %d...\n", e.data.fd);
                 }
                 else {
                     printf("Received \"%s\" from %d...\n", buf, e.data.fd);
