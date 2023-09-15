@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <sys/epoll.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 
 static const size_t MAX_EPOLL_EVENTS = 64;
 static ::std::list<int> clientfds;
@@ -69,8 +70,10 @@ int main(int argc, char** argv)
         exit(ret);
     }
 
+    printf("Server running on port %d...\n", atoi(argv[1]));
+
     // create epfd
-    int epfd = epoll_create(0);
+    int epfd = epoll_create1(0);
 
     // add server fd to epoll
     struct epoll_event event;
@@ -104,7 +107,7 @@ int main(int argc, char** argv)
                     break;
                 }
 
-                printf("New connection from %s...\n", clientAddr.sin_addr.s_addr);
+                printf("New connection from %s...\n", inet_ntoa(clientAddr.sin_addr));
                 event.data.fd = clientfd;
                 event.events = EPOLLIN;
 
@@ -127,10 +130,14 @@ int main(int argc, char** argv)
                     clientfds.remove(e.data.fd);
                 }
                 else {
-                    printf("Received \"%s\" from %d...\n");
+                    printf("Received \"%s\" from %d...\n", buf, e.data.fd);
                     broadcast(e.data.fd, buf, ret);
                 }
             }
         }
     }
+
+    for(auto& clientfd : clientfds) close(clientfd);
+
+    close(ssock);
 }
