@@ -62,6 +62,7 @@ int main(int argc, char** argv) {
             }
             else if(i == csock) { // received message from server
                 char buf[2048];
+                memset(buf, 0, sizeof(buf));
                 ret = recv(csock, buf, sizeof(buf), 0);
                 if(ret == 0) {
                     end = true;

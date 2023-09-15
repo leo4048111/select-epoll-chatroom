@@ -21,10 +21,17 @@ static const char* WELCOME_MSG = ""
 
 static void broadcast(int ignoreClientfd, char* msg, size_t len) noexcept {
     int ret = 0;
+    struct sockaddr_in clientaddr;
+    socklen_t socklen;
+    if((ret = getpeername(ignoreClientfd, (sockaddr*)&clientaddr, &socklen)) == -1) {
+        printf("Error when calling getpeername...\n");
+    }
+
     for(auto& clientfd : clientfds) {
         if(clientfd == ignoreClientfd) continue;
-
-        ret = send(clientfd, msg, len, 0);
+        char buf[2048];
+        len = sprintf(buf, "From %s: %s",  inet_ntoa(clientaddr.sin_addr), msg);
+        ret = send(clientfd, buf, len, 0);
         if(ret == -1) {
             printf("Failed to send msg to client socket %d...", clientfd);
         }
