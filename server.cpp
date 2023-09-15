@@ -9,6 +9,13 @@
 
 static const size_t MAX_EPOLL_EVENTS = 64;
 static ::std::list<int> clientfds;
+static const char* WELCOME_MSG = ""
+".____                  __         _________ .__            __   \n"
+"|    |    ____   _____/  |_  _____\\_   ___ \\|  |__ _____ _/  |_ \n"
+"|    |  _/ __ \\_/ __ \\   __\\/  ___/    \\  \\/|  |  \\__  \\   __\\ \n"
+"|    |__\\  ___/\\  ___/|  |  \\___ \\     \\___|   Y  \\/ __ \\|  | \n"
+"|_______ \\___  >\\___  >__| /____  >\\______  /___|  (____  /__| \n"
+"        \\/   \\/     \\/          \\/        \\/     \\/     \\/ \n";
 
 static void broadcast(int ignoreClientfd, char* msg, size_t len) noexcept {
     int ret = 0;
@@ -19,6 +26,13 @@ static void broadcast(int ignoreClientfd, char* msg, size_t len) noexcept {
         if(ret == -1) {
             printf("Failed to send msg to client socket %d...", clientfd);
         }
+    }
+}
+
+static void welcome(int clientfd) noexcept {
+    int ret = send(clientfd, WELCOME_MSG, strlen(WELCOME_MSG), 0);
+    if(ret == -1) {
+        printf("Failed to send welcome message to client socket %d...", clientfd);
     }
 }
  
@@ -96,6 +110,7 @@ int main(int argc, char** argv)
 
                 epoll_ctl(epfd, EPOLL_CTL_ADD, clientfd, &event);
                 clientfds.push_back(clientfd);
+                welcome(clientfd);
             }
             else { // data from client
                 char buf[2048];
